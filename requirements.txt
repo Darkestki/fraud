@@ -1,4 +1,10 @@
 # prompt: make full req text file with minor details 
+streamlit
+pandas
+numpy
+scikit-learn
+xgboost
+joblib
 
 streamlit
 pandas

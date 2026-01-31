@@ -1,5 +1,5 @@
 # =====================================
-# 🚨 Fraud Detection Streamlit App
+# 🚨 Fraud Detection App (Probability Only)
 # =====================================
 
 import streamlit as st
@@ -7,19 +7,19 @@ import joblib
 import pandas as pd
 
 # ------------------------------
-# 🎨 Page Settings
+# 🎨 Page Config
 # ------------------------------
 st.set_page_config(
-    page_title="Fraud Detection",
+    page_title="Fraud Probability Checker",
     page_icon="🚨",
     layout="centered"
 )
 
-st.title("🚨 Credit Card Fraud Detection System")
-st.write("Enter transaction details and predict whether it is **Fraud or Safe** 💳")
+st.title("🚨 Fraud Probability Predictor")
+st.write("Upload transaction data and check **Fraud Risk % only** 📊")
 
 # ------------------------------
-# 📦 Load Model (only once)
+# 📦 Load Model
 # ------------------------------
 @st.cache_resource
 def load_model():
@@ -27,55 +27,50 @@ def load_model():
 
 try:
     model = load_model()
-    st.success("✅ Model Loaded Successfully")
-except Exception:
-    st.error("❌ Model file missing or xgboost not installed.\nAdd it to requirements.txt")
+    st.success("✅ Model Loaded")
+except:
+    st.error("❌ Model not found. Add xgboost_model.joblib")
     st.stop()
 
 
 # ------------------------------
-# 🧾 Features
+# 📂 File Upload
 # ------------------------------
-features = [
-    'V1','V2','V3','V4','V5','V6','V7','V8','V9','V10',
-    'V11','V12','V13','V14','V15','V16','V17','V18','V19','V20',
-    'V21','V22','V23','V24','V25','V26','V27','V28','Amount'
-]
-
-st.subheader("📊 Enter Transaction Values")
-
-# ------------------------------
-# 🎛 Inputs
-# ------------------------------
-inputs = []
-cols = st.columns(3)
-
-for i, f in enumerate(features):
-    with cols[i % 3]:
-        val = st.number_input(f, value=0.0, format="%.6f")
-        inputs.append(val)
+uploaded_file = st.file_uploader(
+    "📁 Upload CSV file (29 features only)",
+    type=["csv"]
+)
 
 
 # ------------------------------
 # 🔮 Prediction
 # ------------------------------
-if st.button("🔍 Predict Fraud"):
+if uploaded_file:
 
-    data = pd.DataFrame([inputs], columns=features)
+    df = pd.read_csv(uploaded_file)
 
-    pred = model.predict(data)[0]
-    prob = model.predict_proba(data)[0][1]
+    st.write("### 📄 Uploaded Data Preview")
+    st.dataframe(df.head())
 
-    st.divider()
+    if st.button("🔍 Check Fraud Probability"):
 
-    if pred == 1:
-        st.error("🚨 FRAUD DETECTED!")
-        st.write(f"⚠️ Fraud Probability: **{prob:.2%}**")
-        st.toast("Suspicious Transaction!", icon="🚨")
-    else:
-        st.success("✅ SAFE TRANSACTION")
-        st.write(f"✔️ Fraud Probability: **{prob:.2%}**")
-        st.toast("Transaction Safe", icon="✅")
+        probs = model.predict_proba(df)[:, 1]  # probability of fraud
+
+        result = pd.DataFrame({
+            "Fraud Probability (%)": (probs * 100).round(2)
+        })
+
+        st.divider()
+        st.subheader("📊 Results")
+
+        st.dataframe(result)
+
+        avg_prob = probs.mean()
+
+        if avg_prob > 0.5:
+            st.error(f"🚨 High Risk Detected ({avg_prob:.2%})")
+        else:
+            st.success(f"✅ Low Risk ({avg_prob:.2%})")
 
 
 # ------------------------------

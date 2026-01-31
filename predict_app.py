@@ -23,7 +23,7 @@ st.write("Enter transaction details and predict whether it is **Fraud or Safe** 
 # ------------------------------
 @st.cache_resource
 def load_model():
-    return joblib.load("xgboost_model.joblib")
+    return joblib.load("xgboost_model(1).joblib")
 
 try:
     model = load_model()

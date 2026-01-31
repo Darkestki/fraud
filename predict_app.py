@@ -1,80 +1,85 @@
-# =====================================
-# 🚨 Fraud Detection App (Probability Only)
-# =====================================
+# =========================================
+# 🚨 Fraud Detection App (CSV Upload Version)
+# =========================================
 
 import streamlit as st
-import joblib
 import pandas as pd
+import joblib
 
-# ------------------------------
-# 🎨 Page Config
-# ------------------------------
+# ---------------------------
+# 🎨 Page Settings
+# ---------------------------
 st.set_page_config(
-    page_title="Fraud Probability Checker",
+    page_title="Fraud Detection",
     page_icon="🚨",
     layout="centered"
 )
 
-st.title("🚨 Fraud Probability Predictor")
-st.write("Upload transaction data and check **Fraud Risk % only** 📊")
+st.title("🚨 Credit Card Fraud Detection")
+st.write("Upload transaction data and check **Fraud Probability** instantly 📊")
 
-# ------------------------------
+
+# ---------------------------
 # 📦 Load Model
-# ------------------------------
+# ---------------------------
 @st.cache_resource
 def load_model():
     return joblib.load("xgboost_model.joblib")
 
 try:
     model = load_model()
-    st.success("✅ Model Loaded")
+    st.success("✅ Model Loaded Successfully")
 except:
-    st.error("❌ Model not found. Add xgboost_model.joblib")
+    st.error("❌ Model not found or xgboost missing.\nAdd it in requirements.txt")
     st.stop()
 
 
-# ------------------------------
-# 📂 File Upload
-# ------------------------------
+# ---------------------------
+# 📁 Upload CSV
+# ---------------------------
 uploaded_file = st.file_uploader(
-    "📁 Upload CSV file (29 features only)",
+    "📂 Upload CSV File (29 features only)",
     type=["csv"]
 )
 
 
-# ------------------------------
-# 🔮 Prediction
-# ------------------------------
+# ---------------------------
+# 🔮 Prediction after upload
+# ---------------------------
 if uploaded_file:
 
     df = pd.read_csv(uploaded_file)
 
-    st.write("### 📄 Uploaded Data Preview")
+    st.subheader("📄 Uploaded Data Preview")
     st.dataframe(df.head())
 
-    if st.button("🔍 Check Fraud Probability"):
-
-        probs = model.predict_proba(df)[:, 1]  # probability of fraud
-
-        result = pd.DataFrame({
-            "Fraud Probability (%)": (probs * 100).round(2)
-        })
+    try:
+        probs = model.predict_proba(df)[:, 1]
+        df["Fraud_Probability"] = probs
 
         st.divider()
-        st.subheader("📊 Results")
+        st.subheader("🚨 Fraud Probability Results")
 
-        st.dataframe(result)
+        st.dataframe(df)
 
-        avg_prob = probs.mean()
+        # Download button
+        csv = df.to_csv(index=False).encode()
+        st.download_button(
+            "⬇️ Download Results CSV",
+            csv,
+            "fraud_predictions.csv",
+            "text/csv"
+        )
 
-        if avg_prob > 0.5:
-            st.error(f"🚨 High Risk Detected ({avg_prob:.2%})")
-        else:
-            st.success(f"✅ Low Risk ({avg_prob:.2%})")
+        st.success("✅ Prediction Completed Successfully!")
+
+    except Exception as e:
+        st.error("❌ Feature mismatch!\nMake sure CSV has same 29 features used in training.")
+        st.stop()
 
 
-# ------------------------------
+# ---------------------------
 # Footer
-# ------------------------------
+# ---------------------------
 st.divider()
 st.caption("Made with ❤️ using Streamlit + XGBoost")
